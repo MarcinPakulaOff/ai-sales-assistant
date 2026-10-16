@@ -1,0 +1,656 @@
+{
+  "name": "Assistant — Telegram out",
+  "nodes": [
+    {
+      "id": "169fd0a7-0837-4bce-b8d3-710482f750d3",
+      "name": "From assistant (localhost only)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "assistant-out",
+        "responseMode": "onReceived",
+        "options": {}
+      }
+    },
+    {
+      "id": "61786146-ad7b-4f43-9c2c-cc271ef59b40",
+      "name": "Localhost only + prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Assistant → owner's Telegram. The bot token stays in n8n and never touches the assistant host.\n// Localhost only: anything that came through the reverse proxy carries X-Forwarded-For — rejected.\n// BUTTONS: the Telegram node does not accept a whole inline keyboard as one expression (n8n silently\n// sends an empty one), hence fixed layouts: rows of command buttons + one link button (the card).\n// Layout = row lengths, e.g. \"3-3\". Unknown layout → the link goes into the text instead.\nconst SHAPES = ['3-3', '3', '2', '2-1', '0'];\nconst it = $input.first().json;\nconst h = it.headers || {};\nif (h['x-forwarded-for'] || h['x-real-ip']) return [];\nconst b = it.body || {};\nconst p = b.payload || {};\nconst hour = Number(new Intl.DateTimeFormat('pl-PL', { timeZone: 'Europe/Warsaw', hour: '2-digit', hour12: false }).format(new Date()));\nconst silent = hour >= 22 || hour < 7;\nif (b.method === 'answerCallbackQuery') {\n  return [{ json: { method: b.method, queryId: String(p.callback_query_id || ''), text: String(p.text || 'OK').slice(0, 190) } }];\n}\nif (b.method !== 'sendMessage') return [];\nlet text = String(p.text || '').slice(0, 3900);\nconst rows = (p.reply_markup || {}).inline_keyboard || [];\nconst cb = rows.map((r) => r.filter((x) => x.callback_data).map((x) => ({ text: String(x.text), data: String(x.callback_data) }))).filter((r) => r.length);\nconst urlBtn = rows.flat().find((x) => x.url);\nconst u = urlBtn ? { text: String(urlBtn.text), url: String(urlBtn.url) } : { text: '🗂 Pipeline', url: 'https://assistant.example.com/cards' };\nlet shape = rows.length ? cb.map((r) => r.length).join('-') || '0' : 'none';\nif (shape !== 'none' && !SHAPES.includes(shape)) {\n  text += `\\n\\n🗂 ${u.url}`;\n  shape = 'none';\n}\nreturn [{ json: { method: b.method, text, shape, b: cb, u, silent } }];"
+      }
+    },
+    {
+      "id": "14e82308-3e94-4806-8c12-9f79179e228f",
+      "name": "Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.method }}",
+                    "rightValue": "answerCallbackQuery",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "04fac0d0-91ac-4ee5-8e5c-d63922521b5e"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.shape }}",
+                    "rightValue": "3-3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "6d814d49-3ba3-4784-9233-fec57e24cb4c"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.shape }}",
+                    "rightValue": "3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "d3c18da9-7cd4-4de5-a332-9864899f7d16"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.shape }}",
+                    "rightValue": "2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "251b339c-942c-4cf8-ba35-b1af199e7d80"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.shape }}",
+                    "rightValue": "2-1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "731fbf5e-2a95-4ed1-9e5d-4387b9729575"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.shape }}",
+                    "rightValue": "0",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5c7127d2-80a4-4aa5-8485-caa182d2ac69"
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "d19c3fb0-3bfd-4f04-b916-3eb4293cb7d6",
+      "name": "Answer button",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -300
+      ],
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.queryId }}",
+        "additionalFields": {
+          "text": "={{ $json.text }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "1c1f4e2a-ebd1-429a-93bf-3924810afe36",
+      "name": "Buttons 3-3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -150
+      ],
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "disable_notification": "={{ $json.silent }}"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.b[0][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][0].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[0][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][1].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[0][2].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][2].data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.b[1][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[1][0].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[1][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[1][1].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[1][2].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[1][2].data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.u.text }}",
+                    "additionalFields": {
+                      "url": "={{ $json.u.url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "8cfe35ef-2d3d-494a-adfc-d323cc779052",
+      "name": "Buttons 3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        -30
+      ],
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "disable_notification": "={{ $json.silent }}"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.b[0][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][0].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[0][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][1].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[0][2].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][2].data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.u.text }}",
+                    "additionalFields": {
+                      "url": "={{ $json.u.url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "7cb626ef-9758-49b8-b5ce-131f411344f1",
+      "name": "Buttons 2",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        90
+      ],
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "disable_notification": "={{ $json.silent }}"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.b[0][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][0].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[0][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][1].data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.u.text }}",
+                    "additionalFields": {
+                      "url": "={{ $json.u.url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "4b00654f-6bb5-4162-8f8c-367b98f237ca",
+      "name": "Buttons 2-1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        210
+      ],
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "disable_notification": "={{ $json.silent }}"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.b[0][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][0].data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.b[0][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[0][1].data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.b[1][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.b[1][0].data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.u.text }}",
+                    "additionalFields": {
+                      "url": "={{ $json.u.url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "54e3fb2d-4a04-41d6-8e26-9c8189be5509",
+      "name": "Buttons 0",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        330
+      ],
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "disable_notification": "={{ $json.silent }}"
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.u.text }}",
+                    "additionalFields": {
+                      "url": "={{ $json.u.url }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "3789e128-d7fe-4d69-bfc8-847feef0e4dd",
+      "name": "Message without buttons",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        500
+      ],
+      "parameters": {
+        "chatId": "REPLACE_WITH_CHAT_ID",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "appendAttribution": false,
+          "disable_web_page_preview": true,
+          "disable_notification": "={{ $json.silent }}"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "From assistant (localhost only)": {
+      "main": [
+        [
+          {
+            "node": "Localhost only + prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Localhost only + prepare": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Answer button",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buttons 3-3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buttons 3",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buttons 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buttons 2-1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buttons 0",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Message without buttons",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "j1FNuuA1WbCJESjA",
+    "timezone": "Europe/Warsaw",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false
+  }
+}

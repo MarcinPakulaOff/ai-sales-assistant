@@ -1,0 +1,103 @@
+{
+  "name": "Assistant — Telegram in",
+  "nodes": [
+    {
+      "id": "500a0d33-68cb-4bf0-b631-18b3cd4917d0",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "REPLACE_ME",
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "id": "51b1d580-1d88-4c7f-992a-f79103e717dc",
+      "name": "Owner only",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "// Telegram → assistant. Only the owner's chat and account — everything else stops here.\nconst OWNER = 'REPLACE_WITH_CHAT_ID';\nconst u = $input.first().json;\nconst chat = String(u.message?.chat?.id ?? u.callback_query?.message?.chat?.id ?? '');\nconst from = String(u.message?.from?.id ?? u.callback_query?.from?.id ?? '');\nif (chat !== OWNER || from !== OWNER) return [];\nreturn [{ json: u }];"
+      }
+    },
+    {
+      "id": "c5e7c52a-491f-4d06-b619-b828070bf338",
+      "name": "Forward to assistant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://assistant.example.com/telegram",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Telegram-Bot-Api-Secret-Token",
+              "value": "REPLACE_WITH_TELEGRAM_WEBHOOK_SECRET"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "timeout": 15000
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Owner only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Owner only": {
+      "main": [
+        [
+          {
+            "node": "Forward to assistant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "j1FNuuA1WbCJESjA",
+    "timezone": "Europe/Warsaw",
+    "saveDataSuccessExecution": "none",
+    "saveDataErrorExecution": "all",
+    "saveManualExecutions": false,
+    "saveExecutionProgress": false
+  }
+}

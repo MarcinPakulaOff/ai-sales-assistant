@@ -1,0 +1,23 @@
+{
+  "name": "ai-sales-assistant",
+  "version": "1.0.0",
+  "description": "Human-in-the-loop sales assistant: one lead pipeline fed by bookings, a mailbox (headers only) and Telegram; the bot drafts follow-ups, a human clicks Send.",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build": "tsc",
+    "test": "tsc && node --test dist/test/",
+    "start": "node dist/src/server.js"
+  },
+  "dependencies": {
+    "express": "5.1.0",
+    "nodemailer": "7.0.6"
+  },
+  "devDependencies": {
+    "@types/express": "5.0.3",
+    "@types/node": "20.19.17",
+    "@types/nodemailer": "7.0.1",
+    "typescript": "5.9.2"
+  }
+}

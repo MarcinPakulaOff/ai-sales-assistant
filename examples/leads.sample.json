@@ -1,0 +1,22 @@
+{
+  "seq": 3,
+  "seenMessageIds": [],
+  "leads": [
+    {
+      "id": "K1", "label": "hair salon, Opole", "name": "Anna Przykładowa", "firm": "Salon Demo",
+      "email": "salon@example.com", "consent": "asked for an offer at the meeting on 01.10",
+      "status": "offer", "source": "telegram", "createdAt": "2026-10-01T08:00:00.000Z", "updatedAt": "2026-10-02T09:00:00.000Z",
+      "lastOutAt": "2026-10-02T09:00:00.000Z", "lastOutSubject": "Oferta — rezerwacje online", "lastOutMessageId": "<demo-1@example.com>",
+      "followups": 0, "events": [{ "ts": "2026-10-02T09:00:00.000Z", "type": "mail_sent", "text": "Oferta — rezerwacje online" }]
+    },
+    {
+      "id": "K2", "label": "enquiry by email (@example.org)", "email": "office@example.org",
+      "consent": "wrote first — reply to an enquiry", "status": "call", "source": "mail received",
+      "createdAt": "2026-10-05T10:00:00.000Z", "updatedAt": "2026-10-05T10:00:00.000Z", "followups": 0, "events": []
+    },
+    {
+      "id": "K3", "label": "bakery, Krapkowice", "status": "new", "source": "telegram",
+      "createdAt": "2026-10-07T12:00:00.000Z", "updatedAt": "2026-10-07T12:00:00.000Z", "followups": 0, "events": []
+    }
+  ]
+}
